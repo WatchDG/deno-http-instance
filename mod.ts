@@ -45,7 +45,6 @@ export class Instance {
   ): ResultOK<ResponseType> | ResultFAIL<Error> {
     try {
       const contentType = headers.get("content-type");
-      console.log(contentType);
       if (body && contentType) {
         if (contentType.includes("text/html")) {
           const textDecoder = new TextDecoder();
