@@ -73,7 +73,12 @@ export class Instance {
   ): Promise<ResultOK<Response<ResponseType>> | ResultFAIL<Error>> {
     try {
       const _params = new URLSearchParams(
-        Object.assign(this.params, options.params),
+        Object.assign(
+          Object.fromEntries(
+            options.params?.entries() ?? new URLSearchParams().entries(),
+          ),
+          Object.fromEntries(this.params.entries()),
+        ),
       );
       const _headers = new Headers(
         Object.assign(this.headers, options.headers),
