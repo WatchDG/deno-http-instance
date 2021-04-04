@@ -1,4 +1,4 @@
-import { request, ResultFail, ResultOk } from "./deps.ts";
+import { request, ResultOk, tryCatch, tryCatchAsync } from "./deps.ts";
 import type { ResultFAIL, ResultOK } from "./deps.ts";
 
 type Options = {
@@ -45,57 +45,51 @@ export class Instance {
     return newUrl;
   }
 
+  @tryCatch
   private static parseBody<ResponseType>(
     headers: Headers,
     body?: ArrayBuffer,
   ): ResultOK<ResponseType> | ResultFAIL<Error> {
-    try {
-      const contentType = headers.get("content-type");
-      if (body && contentType) {
-        if (contentType.includes("text/html")) {
-          const textDecoder = new TextDecoder();
-          return ResultOk(textDecoder.decode(body) as unknown as ResponseType);
-        }
-        if (contentType.includes("application/json")) {
-          const textDecoder = new TextDecoder();
-          return ResultOk(JSON.parse(textDecoder.decode(body)));
-        }
+    const contentType = headers.get("content-type");
+    if (body && contentType) {
+      if (contentType.includes("text/html")) {
+        const textDecoder = new TextDecoder();
+        return ResultOk(textDecoder.decode(body) as unknown as ResponseType);
       }
-      return ResultOk(void 0 as unknown as ResponseType);
-    } catch (error) {
-      return ResultOk(error);
+      if (contentType.includes("application/json")) {
+        const textDecoder = new TextDecoder();
+        return ResultOk(JSON.parse(textDecoder.decode(body)));
+      }
     }
+    return ResultOk(void 0 as unknown as ResponseType);
   }
 
+  @tryCatchAsync
   async get<ResponseType>(
     path: string,
     options: RequestOptions = {},
   ): Promise<ResultOK<Response<ResponseType>> | ResultFAIL<Error>> {
-    try {
-      const _params = new URLSearchParams(
-        Object.assign(
-          Object.fromEntries(
-            options.params?.entries() ?? new URLSearchParams().entries(),
-          ),
-          Object.fromEntries(this.params.entries()),
+    const _params = new URLSearchParams(
+      Object.assign(
+        Object.fromEntries(
+          options.params?.entries() ?? new URLSearchParams().entries(),
         ),
-      );
-      const _headers = new Headers(
-        Object.assign(this.headers, options.headers),
-      );
-      const url = Instance.prepareURL(this.baseUrl, {
-        path,
-        params: _params,
-      });
-      const { status, headers, body } = (await request(url.toString(), {
-        method: "GET",
-        headers: _headers,
-      })).unwrap();
-      const data = (await Instance.parseBody<ResponseType>(headers, body))
-        .unwrap();
-      return ResultOk({ status, headers, data });
-    } catch (error) {
-      return ResultFail(error);
-    }
+        Object.fromEntries(this.params.entries()),
+      ),
+    );
+    const _headers = new Headers(
+      Object.assign(this.headers, options.headers),
+    );
+    const url = Instance.prepareURL(this.baseUrl, {
+      path,
+      params: _params,
+    });
+    const { status, headers, body } = (await request(url.toString(), {
+      method: "GET",
+      headers: _headers,
+    })).unwrap();
+    const data = (await Instance.parseBody<ResponseType>(headers, body))
+      .unwrap();
+    return ResultOk({ status, headers, data });
   }
 }
