@@ -4,14 +4,17 @@ import type { ResultFAIL, ResultOK } from "./deps.ts";
 type Options = {
   baseUrl: URL;
   headers?: HeadersInit;
+  params?: URLSearchParams;
 };
 
 type RequestOptions = {
   headers?: HeadersInit;
+  params?: URLSearchParams;
 };
 
 type PrepareURLOptions = {
   path: string;
+  params: URLSearchParams;
 };
 
 type Response<ResponseType> = {
@@ -23,11 +26,13 @@ type Response<ResponseType> = {
 export class Instance {
   private readonly baseUrl: URL;
   private readonly headers: Headers;
+  private readonly params: URLSearchParams;
 
   constructor(options: Options) {
     const { baseUrl } = options;
     this.baseUrl = baseUrl;
     this.headers = new Headers(options.headers ?? {});
+    this.params = new URLSearchParams(options.params ?? {});
   }
 
   private static prepareURL(
@@ -36,6 +41,7 @@ export class Instance {
   ): URL {
     const newUrl = new URL(url.toString());
     newUrl.pathname += options.path;
+    newUrl.search = options.params.toString();
     return newUrl;
   }
 
@@ -66,10 +72,16 @@ export class Instance {
     options: RequestOptions = {},
   ): Promise<ResultOK<Response<ResponseType>> | ResultFAIL<Error>> {
     try {
-      const url = Instance.prepareURL(this.baseUrl, { path });
+      const _params = new URLSearchParams(
+        Object.assign(this.params, options.params),
+      );
       const _headers = new Headers(
         Object.assign(this.headers, options.headers),
       );
+      const url = Instance.prepareURL(this.baseUrl, {
+        path,
+        params: _params,
+      });
       const { status, headers, body } = (await request(url.toString(), {
         method: "GET",
         headers: _headers,
