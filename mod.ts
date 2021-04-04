@@ -1,5 +1,5 @@
 import { request, ResultOk, tryCatch, tryCatchAsync } from "./deps.ts";
-import type { ResultFAIL, ResultOK } from "./deps.ts";
+import type { Result, ResultAsync } from "./deps.ts";
 
 type Options = {
   baseUrl: URL;
@@ -49,7 +49,7 @@ export class Instance {
   private static parseBody<ResponseType>(
     headers: Headers,
     body?: ArrayBuffer,
-  ): ResultOK<ResponseType> | ResultFAIL<Error> {
+  ): Result<ResponseType, Error> {
     const contentType = headers.get("content-type");
     if (body && contentType) {
       if (contentType.includes("text/html")) {
@@ -68,7 +68,7 @@ export class Instance {
   async get<ResponseType>(
     path: string,
     options: RequestOptions = {},
-  ): Promise<ResultOK<Response<ResponseType>> | ResultFAIL<Error>> {
+  ): ResultAsync<Response<ResponseType>, Error> {
     const _params = new URLSearchParams(
       Object.assign(
         Object.fromEntries(
