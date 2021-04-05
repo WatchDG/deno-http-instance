@@ -62,10 +62,30 @@ export class Instance {
   private static prepareHeaders(
     headers: Headers,
     optionsHeaders?: HeadersInit,
+    bodyHeaders?: HeadersInit,
   ) {
     return new Headers(
-      Object.assign(headers, optionsHeaders),
+      Object.assign(headers, bodyHeaders, optionsHeaders),
     );
+  }
+
+  @tryCatch
+  private static prepareBody<DataType extends (string | object | undefined)>(
+    data: DataType,
+  ): Result<{ body?: string; headers: HeadersInit }, Error> {
+    const headers: HeadersInit = {};
+    if (typeof data === "string") {
+      headers["Content-Type"] = "text/plain";
+      headers["Content-Length"] = new Blob([data]).size.toString();
+      return ok({ body: data, headers });
+    }
+    if (Object.prototype.toString.call(data) === "[object Object]") {
+      const body = JSON.stringify(data);
+      headers["Content-Type"] = "application/json";
+      headers["Content-Length"] = new Blob([body]).size.toString();
+      return ok({ body, headers });
+    }
+    return ok({ headers });
   }
 
   @tryCatch
@@ -108,13 +128,19 @@ export class Instance {
   }
 
   @tryCatchAsync
-  async post<RequestData, ResponseType>(
+  async post<RequestData extends (string | object | undefined), ResponseType>(
     path: string,
     data: RequestData,
     options: RequestOptions = {},
   ): ResultAsync<Response<ResponseType>, Error> {
     const _params = Instance.prepareParams(this.params, options.params);
-    const _headers = Instance.prepareHeaders(this.headers, options.headers);
+    const { body: __body, headers: __headers } = Instance.prepareBody(data)
+      .unwrap();
+    const _headers = Instance.prepareHeaders(
+      this.headers,
+      options.headers,
+      __headers,
+    );
     const _url = Instance.prepareURL(this.baseUrl, {
       path,
       params: _params,
@@ -122,6 +148,7 @@ export class Instance {
     const { status, headers, body } = (await request(_url.toString(), {
       method: "POST",
       headers: _headers,
+      body: __body,
     })).unwrap();
     const _data = (await Instance.parseBody<ResponseType>(headers, body))
       .unwrap();
