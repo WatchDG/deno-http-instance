@@ -45,6 +45,29 @@ export class Instance {
     return newUrl;
   }
 
+  private static prepareParams(
+    params: URLSearchParams,
+    optionsParams?: URLSearchParams,
+  ) {
+    return new URLSearchParams(
+      Object.assign(
+        Object.fromEntries(
+          (optionsParams ?? new URLSearchParams()).entries(),
+        ),
+        Object.fromEntries(params.entries()),
+      ),
+    );
+  }
+
+  private static prepareHeaders(
+    headers: Headers,
+    optionsHeaders?: HeadersInit,
+  ) {
+    return new Headers(
+      Object.assign(headers, optionsHeaders),
+    );
+  }
+
   @tryCatch
   private static parseBody<ResponseType>(
     headers: Headers,
@@ -69,27 +92,39 @@ export class Instance {
     path: string,
     options: RequestOptions = {},
   ): ResultAsync<Response<ResponseType>, Error> {
-    const _params = new URLSearchParams(
-      Object.assign(
-        Object.fromEntries(
-          options.params?.entries() ?? new URLSearchParams().entries(),
-        ),
-        Object.fromEntries(this.params.entries()),
-      ),
-    );
-    const _headers = new Headers(
-      Object.assign(this.headers, options.headers),
-    );
-    const url = Instance.prepareURL(this.baseUrl, {
+    const _params = Instance.prepareParams(this.params, options.params);
+    const _headers = Instance.prepareHeaders(this.headers, options.headers);
+    const _url = Instance.prepareURL(this.baseUrl, {
       path,
       params: _params,
     });
-    const { status, headers, body } = (await request(url.toString(), {
+    const { status, headers, body } = (await request(_url.toString(), {
       method: "GET",
       headers: _headers,
     })).unwrap();
     const data = (await Instance.parseBody<ResponseType>(headers, body))
       .unwrap();
     return ok({ status, headers, data });
+  }
+
+  @tryCatchAsync
+  async post<RequestData, ResponseType>(
+    path: string,
+    data: RequestData,
+    options: RequestOptions = {},
+  ): ResultAsync<Response<ResponseType>, Error> {
+    const _params = Instance.prepareParams(this.params, options.params);
+    const _headers = Instance.prepareHeaders(this.headers, options.headers);
+    const _url = Instance.prepareURL(this.baseUrl, {
+      path,
+      params: _params,
+    });
+    const { status, headers, body } = (await request(_url.toString(), {
+      method: "POST",
+      headers: _headers,
+    })).unwrap();
+    const _data = (await Instance.parseBody<ResponseType>(headers, body))
+      .unwrap();
+    return ok({ status, headers, data: _data });
   }
 }
