@@ -1,4 +1,4 @@
-import { request, ResultOk, tryCatch, tryCatchAsync } from "./deps.ts";
+import { ok, request, tryCatch, tryCatchAsync } from "./deps.ts";
 import type { Result, ResultAsync } from "./deps.ts";
 
 type Options = {
@@ -54,14 +54,14 @@ export class Instance {
     if (body && contentType) {
       if (contentType.includes("text/html")) {
         const textDecoder = new TextDecoder();
-        return ResultOk(textDecoder.decode(body) as unknown as ResponseType);
+        return ok(textDecoder.decode(body) as unknown as ResponseType);
       }
       if (contentType.includes("application/json")) {
         const textDecoder = new TextDecoder();
-        return ResultOk(JSON.parse(textDecoder.decode(body)));
+        return ok(JSON.parse(textDecoder.decode(body)));
       }
     }
-    return ResultOk(void 0 as unknown as ResponseType);
+    return ok(void 0 as unknown as ResponseType);
   }
 
   @tryCatchAsync
@@ -90,6 +90,6 @@ export class Instance {
     })).unwrap();
     const data = (await Instance.parseBody<ResponseType>(headers, body))
       .unwrap();
-    return ResultOk({ status, headers, data });
+    return ok({ status, headers, data });
   }
 }
