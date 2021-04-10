@@ -1,5 +1,5 @@
 import { ok, request, tryCatch, tryCatchAsync } from "./deps.ts";
-import type { Result, ResultAsync } from "./deps.ts";
+import type { TResult, TResultAsync } from "./deps.ts";
 
 type Options = {
   baseUrl: URL;
@@ -70,9 +70,11 @@ export class Instance {
   }
 
   @tryCatch
-  private static prepareBody<DataType extends (string | object | undefined)>(
+  private static prepareBody<
+    DataType extends (string | Record<string | number, unknown> | undefined),
+  >(
     data: DataType,
-  ): Result<{ body?: string; headers: HeadersInit }, Error> {
+  ): TResult<{ body?: string; headers: HeadersInit }, Error> {
     const headers: HeadersInit = {};
     if (typeof data === "string") {
       headers["Content-Type"] = "text/plain";
@@ -92,7 +94,7 @@ export class Instance {
   private static parseBody<ResponseType>(
     headers: Headers,
     body?: ArrayBuffer,
-  ): Result<ResponseType, Error> {
+  ): TResult<ResponseType, Error> {
     const contentType = headers.get("content-type");
     if (body && contentType) {
       if (contentType.includes("text/html")) {
@@ -111,7 +113,7 @@ export class Instance {
   async get<ResponseType>(
     path: string,
     options: RequestOptions = {},
-  ): ResultAsync<Response<ResponseType>, Error> {
+  ): TResultAsync<Response<ResponseType>, Error> {
     const _params = Instance.prepareParams(this.params, options.params);
     const _headers = Instance.prepareHeaders(this.headers, options.headers);
     const _url = Instance.prepareURL(this.baseUrl, {
@@ -128,11 +130,14 @@ export class Instance {
   }
 
   @tryCatchAsync
-  async post<RequestData extends (string | object | undefined), ResponseType>(
+  async post<
+    RequestData extends (string | Record<string | number, unknown> | undefined),
+    ResponseType,
+  >(
     path: string,
     data: RequestData,
     options: RequestOptions = {},
-  ): ResultAsync<Response<ResponseType>, Error> {
+  ): TResultAsync<Response<ResponseType>, Error> {
     const _params = Instance.prepareParams(this.params, options.params);
     const { body: __body, headers: __headers } = Instance.prepareBody(data)
       .unwrap();
